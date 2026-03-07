@@ -8,6 +8,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     await db.add_user(user.id, user.username, user.full_name)
     
+    # Animations & Reactions
+    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+    try:
+        await update.message.set_reaction(reactions=["👍"])
+    except:
+        pass
+    
     # Handle Deep Links (from Inline Search)
     args = context.args
     if args and args[0].startswith("info_"):
@@ -96,6 +103,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Animations & Reactions
+    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+    try:
+        await update.message.set_reaction(reactions=["⚡"])
+    except:
+        pass
+        
     keyboard = [
         [
             InlineKeyboardButton("🔍 SEARCH", switch_inline_query_current_chat=""),

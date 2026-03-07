@@ -3,6 +3,14 @@ from telegram.ext import ContextTypes
 from api.tmdb import tmdb
 
 async def trending_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Animations & Reactions
+    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+    try:
+        if update.message:
+            await update.message.set_reaction(reactions=["📈"])
+    except:
+        pass
+        
     results = await tmdb.get_trending("all", "day")
     message = update.effective_message
     if not results:

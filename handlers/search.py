@@ -7,6 +7,13 @@ from config import TMDB_IMAGE_BASE_URL
 import uuid
 
 async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Animations & Reactions
+    await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+    try:
+        await update.message.set_reaction(reactions=["🔥"])
+    except:
+        pass
+        
     query_text = " ".join(context.args)
     if not query_text:
         await update.message.reply_text("Please provide a movie or series name to search.\nExample: /search Outlander")
