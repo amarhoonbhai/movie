@@ -1,12 +1,58 @@
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
-from config import BANNER_URL, TUTORIAL_URL
+from config import BANNER_URL, TUTORIAL_URL, FSUB_CHANNEL
 from database import db
+from utils.middlewares import is_subscribed
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     await db.add_user(user.id, user.username, user.full_name)
     
+    # Handle Deep Links (from Inline Search)
+    args = context.args
+    if args and args[0].startswith("info_"):
+        # Format: info_media-type_media-id
+        _, m_type, m_id = args[0].split("_")
+        from handlers.search import search_details_callback
+        # We need to simulate a callback query or refactor
+        # For professional approach, we call the details logic directly
+        from api.tmdb import tmdb
+        from utils.formatters import get_post_text
+        from config import TMDB_IMAGE_BASE_URL
+        
+        details = await tmdb.get_details(m_type, m_id)
+        post_text = get_post_text(details, m_type, "portrait")
+        media_url = f"{TMDB_IMAGE_BASE_URL}{details.get('poster_path')}"
+        
+        keyboard = [
+            [InlineKeyboardButton("📱 Portrait", callback_data=f"details_{m_type}_{m_id}_portrait")],
+            [InlineKeyboardButton("🖼️ Landscape", callback_data=f"details_{m_type}_{m_id}_landscape")],
+            [InlineKeyboardButton("🏠 HOME", callback_data="home")]
+        ]
+        
+        await update.message.reply_photo(
+            photo=media_url,
+            caption=post_text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="HTML"
+        )
+        return
+
+    # Force Subscribe Check
+    if not await is_subscribed(context.bot, user.id):
+        keyboard = [
+            [InlineKeyboardButton("📢 Join Channel", url=f"https://t.me/{FSUB_CHANNEL.replace('@', '')}")],
+            [InlineKeyboardButton("🔄 Verify Membership", callback_data="verify_sub")]
+        ]
+        await update.message.reply_text(
+            f"<b>Access Denied!</b> ❌\n\n"
+            f"You must join our channel {FSUB_CHANNEL} to use this bot.\n"
+            "After joining, click the verify button below.",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="HTML"
+        )
+        return
+
     keyboard = [
         [InlineKeyboardButton("🔍 SEARCH MOVIE", switch_inline_query_current_chat="")],
         [
@@ -90,6 +136,17 @@ async def cmds_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
+    user_id = query.from_user.id
+    
+    if query.data == "verify_sub":
+        if await is_subscribed(context.bot, user_id):
+            await query.answer("Verification successful! Welcome.", show_alert=True)
+            await query.message.delete()
+            await start(update, context)
+        else:
+            await query.answer("You haven't joined yet! Please join the channel first.", show_alert=True)
+        return
+
     await query.answer()
     
     if query.data == "home":

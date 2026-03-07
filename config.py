@@ -21,6 +21,9 @@ OWNER_IDS = [1577166444, 8395808382]
 ADMIN_IDS = [8395808382]
 
 # --- UI Customization ---
-CHANNEL_NAME = "@YourChannelName"
+CHANNEL_NAME = "@philobots"
 TUTORIAL_URL = "https://t.me/your_tutorial_link"
 BANNER_URL = "https://images.unsplash.com/photo-1594909122845-11baa439b7bf?q=80&w=2070&auto=format&fit=crop"
+
+# --- Force Subscribe ---
+FSUB_CHANNEL = "@philobots"

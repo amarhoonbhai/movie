@@ -1,5 +1,5 @@
 import logging
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, InlineQueryHandler, filters
 from config import BOT_TOKEN
 from handlers.start import start, menu, cmds_command, button_callback
 from handlers.search import (
@@ -7,7 +7,8 @@ from handlers.search import (
     search_details_callback, 
     most_searched_command, 
     search_again_callback, 
-    skip_thumbnail_callback
+    skip_thumbnail_callback,
+    inline_search_handler
 )
 from handlers.trending import trending_command, trending_callback
 from handlers.premium import img2link_command, handle_photo, referral_command, plan_command
@@ -45,6 +46,8 @@ def main():
     application.add_handler(CallbackQueryHandler(search_again_callback, pattern=r"^search_again_"))
     application.add_handler(CallbackQueryHandler(skip_thumbnail_callback, pattern=r"^skip_thumb_"))
     application.add_handler(CallbackQueryHandler(trending_callback, pattern="^trending$"))
+    application.add_handler(CallbackQueryHandler(lambda u, c: u.callback_query.message.delete(), pattern="^close_post$"))
+    application.add_handler(InlineQueryHandler(inline_search_handler))
     application.add_handler(CallbackQueryHandler(button_callback)) # Fallback for simple buttons
 
     # --- Message Handlers ---
