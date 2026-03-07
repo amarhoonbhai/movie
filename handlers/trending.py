@@ -4,8 +4,9 @@ from api.tmdb import tmdb
 
 async def trending_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     results = await tmdb.get_trending("all", "day")
+    message = update.effective_message
     if not results:
-        await update.message.reply_text("No trending results found.")
+        await message.reply_text("No trending results found.")
         return
 
     keyboard = []
@@ -17,7 +18,7 @@ async def trending_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard.append([InlineKeyboardButton(title, callback_data=callback_data)])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Top Trending Today:", reply_markup=reply_markup)
+    await message.reply_text("Top Trending Today:", reply_markup=reply_markup)
 
 async def trending_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query

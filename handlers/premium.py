@@ -34,17 +34,19 @@ async def handle_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def referral_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     referral_link = f"https://t.me/{context.bot.username}?start=ref_{user_id}"
+    message = update.effective_message
     
-    await update.message.reply_text(
-        "<b>Referral System</b>\n\n"
+    await message.reply_text(
+        "🎁 <b>Referral System</b>\n\n"
         f"Your Referral Link: {referral_link}\n\n"
         "Invite 10 friends to unlock Premium benefits for free!",
         parse_mode="HTML"
     )
 
 async def plan_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    message = update.effective_message
     plans_text = (
-        "<b>Premium Benefits:</b>\n\n"
+        "👑 <b>Premium Benefits:</b>\n\n"
         "➥ No need to open links\n"
         "➥ Direct files\n"
         "➥ Ad free\n"
@@ -59,4 +61,4 @@ async def plan_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("Close", callback_data="close_plan")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(plans_text, reply_markup=reply_markup, parse_mode="HTML")
+    await message.reply_text(plans_text, reply_markup=reply_markup, parse_mode="HTML")

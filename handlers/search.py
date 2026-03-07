@@ -68,8 +68,9 @@ async def search_details_callback(update: Update, context: ContextTypes.DEFAULT_
 
 async def most_searched_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     most_searched = await db.get_most_searched(10)
+    message = update.effective_message
     if not most_searched:
-        await update.message.reply_text("No search history found.")
+        await message.reply_text("No search history found.")
         return
 
     keyboard = []
@@ -77,7 +78,7 @@ async def most_searched_command(update: Update, context: ContextTypes.DEFAULT_TY
         keyboard.append([InlineKeyboardButton(item["query"].title(), callback_data=f"search_again_{item['query']}")])
 
     reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Most Searched Queries:", reply_markup=reply_markup)
+    await message.reply_text("Most Searched Queries:", reply_markup=reply_markup)
 
 async def search_again_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query

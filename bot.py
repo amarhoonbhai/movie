@@ -1,7 +1,7 @@
 import logging
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 from config import BOT_TOKEN
-from handlers.start import start, menu, button_callback
+from handlers.start import start, menu, cmds_command, button_callback
 from handlers.search import (
     search_command, 
     search_details_callback, 
@@ -25,6 +25,7 @@ def main():
     # --- Commands ---
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("menu", menu))
+    application.add_handler(CommandHandler("cmds", cmds_command))
     application.add_handler(CommandHandler("search", search_command))
     application.add_handler(CommandHandler("mostlist", most_searched_command))
     application.add_handler(CommandHandler("trendlist", trending_command))
