@@ -1,48 +1,44 @@
+import logging
 import httpx
-from config import TMDB_API_KEY, TMDB_IMAGE_BASE_URL
+from config import TMDB_API_KEY
+
+logger = logging.getLogger(__name__)
+
+TMDB_BASE = "https://api.themoviedb.org/3"
+
 
 class TMDB:
     def __init__(self):
         self._api_key = TMDB_API_KEY
-        self._base_url = "https://api.themoviedb.org/3"
+
+    async def _get(self, path, params=None):
+        """Central GET with error handling."""
+        _params = {"api_key": self._api_key, "language": "en-US"}
+        if params:
+            _params.update(params)
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.get(f"{TMDB_BASE}{path}", params=_params)
+                resp.raise_for_status()
+                return resp.json()
+        except httpx.HTTPStatusError as e:
+            logger.error(f"TMDb HTTP error: {e.response.status_code} for {path}")
+            return {}
+        except Exception as e:
+            logger.error(f"TMDb request failed: {e}")
+            return {}
 
     async def search(self, query):
-        url = f"{self._base_url}/search/multi"
-        params = {
-            "api_key": self._api_key,
-            "query": query,
-            "language": "en-US",
-            "page": 1,
-            "include_adult": False
-        }
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, params=params)
-            response.raise_for_status()
-            results = response.json().get("results", [])
-            # Filter results to include only movies and series
-            return [res for res in results if res["media_type"] in ["movie", "tv"]][:5]
+        data = await self._get("/search/multi", {"query": query, "page": 1, "include_adult": False})
+        results = data.get("results", [])
+        return [r for r in results if r.get("media_type") in ("movie", "tv")][:5]
 
     async def get_details(self, media_type, media_id):
-        url = f"{self._base_url}/{media_type}/{media_id}"
-        params = {
-            "api_key": self._api_key,
-            "language": "en-US"
-        }
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, params=params)
-            response.raise_for_status()
-            return response.json()
+        return await self._get(f"/{media_type}/{media_id}")
 
     async def get_trending(self, media_type="all", time_window="day"):
-        url = f"{self._base_url}/trending/{media_type}/{time_window}"
-        params = {
-            "api_key": self._api_key,
-            "language": "en-US"
-        }
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, params=params)
-            response.raise_for_status()
-            results = response.json().get("results", [])
-            return results[:10]
+        data = await self._get(f"/trending/{media_type}/{time_window}")
+        return data.get("results", [])[:10]
+
 
 tmdb = TMDB()

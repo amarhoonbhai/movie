@@ -1,7 +1,8 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 from database import db
-from config import OWNER_IDS, ADMIN_IDS
+from config import OWNER_IDS
+
 
 async def admin_cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -11,48 +12,59 @@ async def admin_cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     admin_msg = (
         "<b>Admin Commands:</b>\n\n"
-        "/stats - Get bot statistics\n"
-        "/addadmin {user_id} - Add a new admin\n"
-        "/removeadmin {user_id} - Remove an admin\n"
-        "/broadcast - Send message to all users\n"
-        "/ban {user_id} - Ban a user\n"
-        "/unban {user_id} - Unban a user\n"
-        "/requests - View Movie Requests"
+        "/stats - Bot statistics\n"
+        "/addadmin {user_id} - Add admin\n"
+        "/removeadmin {user_id} - Remove admin\n"
+        "/broadcast {msg} - Message all users\n"
+        "/ban {user_id} - Ban user\n"
+        "/requests - View movie requests"
     )
     await update.message.reply_text(admin_msg, parse_mode="HTML")
 
+
 async def requests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if not await db.is_admin(user_id): return
-    
-    requests = db._movie_requests
-    if not requests:
+    if not await db.is_admin(update.effective_user.id):
+        return
+
+    reqs = await db.get_movie_requests()
+    if not reqs:
         await update.message.reply_text("No movie requests found.")
         return
-        
+
     text = "📥 <b>Movie Requests:</b>\n\n"
-    for i, req in enumerate(requests, 1):
+    for i, req in enumerate(reqs, 1):
         text += f"{i}. {req}\n"
-        
+
     await update.message.reply_text(text, parse_mode="HTML")
 
+
 async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if not await db.is_admin(user_id): return
-    
+    if not await db.is_admin(update.effective_user.id):
+        return
+
     users_count, premium_count = await db.get_stats()
-    await update.message.reply_text(f"Bot Stats:\n\nTotal Users: {users_count}\nPremium Users: {premium_count}")
+    indexed = len(db._indexed_files)
+    requests_count = len(db._movie_requests)
+
+    text = (
+        "<b>📊 Bot Stats:</b>\n\n"
+        f"👥 Users: {users_count}\n"
+        f"👑 Premium: {premium_count}\n"
+        f"📁 Indexed Files: {indexed}\n"
+        f"📥 Movie Requests: {requests_count}"
+    )
+    await update.message.reply_text(text, parse_mode="HTML")
+
 
 async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if not await db.is_admin(user_id): return
-    
-    # Broadcast logic
-    msg_to_broadcast = " ".join(context.args)
-    if not msg_to_broadcast:
-        await update.message.reply_text("Please provide a message to broadcast.")
+    if not await db.is_admin(update.effective_user.id):
         return
-        
+
+    msg_to_broadcast = " ".join(context.args) if context.args else ""
+    if not msg_to_broadcast:
+        await update.message.reply_text("Usage: /broadcast <message>")
+        return
+
     users = await db.get_all_users()
     count = 0
     for user in users:
@@ -61,22 +73,26 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             count += 1
         except Exception:
             pass
-    await update.message.reply_text(f"Successfully broadcasted to {count} users.")
+    await update.message.reply_text(f"✅ Broadcasted to {count}/{len(users)} users.")
+
 
 async def add_admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if user_id not in OWNER_IDS: return # Only owners can add admins
-    
-    if not context.args: return
+    if update.effective_user.id not in OWNER_IDS:
+        return
+    if not context.args:
+        await update.message.reply_text("Usage: /addadmin <user_id>")
+        return
     new_admin_id = int(context.args[0])
     await db.add_admin(new_admin_id)
-    await update.message.reply_text(f"Successfully added admin: {new_admin_id}")
+    await update.message.reply_text(f"✅ Added admin: {new_admin_id}")
+
 
 async def ban_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-    if not await db.is_admin(user_id): return
-    
-    if not context.args: return
+    if not await db.is_admin(update.effective_user.id):
+        return
+    if not context.args:
+        await update.message.reply_text("Usage: /ban <user_id>")
+        return
     target_id = int(context.args[0])
     await db.ban_user(target_id)
-    await update.message.reply_text(f"Successfully banned user: {target_id}")
+    await update.message.reply_text(f"✅ Banned user: {target_id}")
