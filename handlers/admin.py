@@ -37,7 +37,7 @@ async def broadcast_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("Please provide a message to broadcast.")
         return
         
-    users = await db.users.find().to_list(length=None)
+    users = await db.get_all_users()
     count = 0
     for user in users:
         try:
@@ -62,5 +62,5 @@ async def ban_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if not context.args: return
     target_id = int(context.args[0])
-    await db.users.update_one({"user_id": target_id}, {"$set": {"is_banned": True}})
+    await db.ban_user(target_id)
     await update.message.reply_text(f"Successfully banned user: {target_id}")

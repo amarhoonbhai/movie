@@ -36,10 +36,18 @@ class Database:
         return user_id in self._admins
 
     async def add_admin(self, user_id):
-        self._admins.add(user_id)
+        self._admins.add(int(user_id))
 
     async def remove_admin(self, user_id):
-        self._admins.discard(user_id)
+        self._admins.discard(int(user_id))
+
+    async def ban_user(self, user_id):
+        user = self._users.get(int(user_id))
+        if user:
+            user["is_banned"] = True
+
+    async def get_all_users(self):
+        return list(self._users.values())
 
     async def get_stats(self):
         users_count = len(self._users)

@@ -23,4 +23,4 @@ ADMIN_IDS = [8395808382]
 # --- UI Customization ---
 CHANNEL_NAME = "@YourChannelName"
 TUTORIAL_URL = "https://t.me/your_tutorial_link"
-BANNER_URL = "https://telegra.ph/file/your_banner_image.jpg" # Placeholder banner
+BANNER_URL = "https://images.unsplash.com/photo-1594909122845-11baa439b7bf?q=80&w=2070&auto=format&fit=crop"

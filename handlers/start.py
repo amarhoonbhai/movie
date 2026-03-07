@@ -28,11 +28,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Search your favorite movies and web series by name."
     )
     
-    await update.message.reply_photo(
-        photo=BANNER_URL,
-        caption=welcome_msg,
-        reply_markup=reply_markup
-    )
+    try:
+        await update.message.reply_photo(
+            photo=BANNER_URL,
+            caption=welcome_msg,
+            reply_markup=reply_markup
+        )
+    except Exception as e:
+        # Fallback to text if the image URL is invalid or inaccessible
+        await update.message.reply_text(
+            text=f"{welcome_msg}\n\n(Banner image not found, please update config.py)",
+            reply_markup=reply_markup
+        )
 
 async def menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
