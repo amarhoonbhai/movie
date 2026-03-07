@@ -6,8 +6,23 @@ class Database:
         self._premium_users = []   # list of user_ids
         self._referrals = {}       # user_id: count
         self._admins = set()       # set of user_ids
+        self._indexed_files = {}   # caption: message_id
+        self._movie_requests = []  # list of movie_names
 
-    async def add_user(self, user_id, username, full_name):
+    async def index_file(self, caption, message_id):
+        if caption:
+            self._indexed_files[caption.lower()] = message_id
+
+    async def search_files(self, query):
+        query = query.lower()
+        results = []
+        for caption, msg_id in self._indexed_files.items():
+            if query in caption:
+                results.append({"caption": caption, "message_id": msg_id})
+        return results
+
+    async def add_movie_request(self, movie_name):
+        self._movie_requests.append(movie_name)
         user = {
             "user_id": user_id,
             "username": username,

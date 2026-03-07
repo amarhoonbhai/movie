@@ -12,7 +12,8 @@ from handlers.search import (
 )
 from handlers.trending import trending_command, trending_callback
 from handlers.premium import img2link_command, handle_photo, referral_command, plan_command
-from handlers.admin import admin_cmds, stats_command, broadcast_command, add_admin_command, ban_command
+from handlers.admin import admin_cmds, stats_command, broadcast_command, add_admin_command, ban_command, requests_command
+from handlers.groups import index_storage_handler, group_search_handler, file_selection_callback
 
 # Enable logging
 logging.basicConfig(
@@ -40,6 +41,7 @@ def main():
     application.add_handler(CommandHandler("broadcast", broadcast_command))
     application.add_handler(CommandHandler("addadmin", add_admin_command))
     application.add_handler(CommandHandler("ban", ban_command))
+    application.add_handler(CommandHandler("requests", requests_command))
 
     # --- Callbacks ---
     application.add_handler(CallbackQueryHandler(search_details_callback, pattern=r"^details_"))
@@ -47,8 +49,14 @@ def main():
     application.add_handler(CallbackQueryHandler(skip_thumbnail_callback, pattern=r"^skip_thumb_"))
     application.add_handler(CallbackQueryHandler(trending_callback, pattern="^trending$"))
     application.add_handler(CallbackQueryHandler(lambda u, c: u.callback_query.message.delete(), pattern="^close_post$"))
+    application.add_handler(CallbackQueryHandler(file_selection_callback, pattern=r"^fwd_"))
     application.add_handler(InlineQueryHandler(inline_search_handler))
     application.add_handler(CallbackQueryHandler(button_callback)) # Fallback for simple buttons
+    
+    # --- Auto-Filter Handlers ---
+    from config import ALLOWED_GROUP
+    application.add_handler(MessageHandler(filters.ChatType.CHANNEL, index_storage_handler))
+    application.add_handler(MessageHandler(filters.Chat(ALLOWED_GROUP) & filters.TEXT & (~filters.COMMAND), group_search_handler))
 
     # --- Message Handlers ---
     application.add_handler(MessageHandler(filters.PHOTO, handle_photo))

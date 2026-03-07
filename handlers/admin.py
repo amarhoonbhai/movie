@@ -16,9 +16,25 @@ async def admin_cmds(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/removeadmin {user_id} - Remove an admin\n"
         "/broadcast - Send message to all users\n"
         "/ban {user_id} - Ban a user\n"
-        "/unban {user_id} - Unban a user"
+        "/unban {user_id} - Unban a user\n"
+        "/requests - View Movie Requests"
     )
     await update.message.reply_text(admin_msg, parse_mode="HTML")
+
+async def requests_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if not await db.is_admin(user_id): return
+    
+    requests = db._movie_requests
+    if not requests:
+        await update.message.reply_text("No movie requests found.")
+        return
+        
+    text = "📥 <b>Movie Requests:</b>\n\n"
+    for i, req in enumerate(requests, 1):
+        text += f"{i}. {req}\n"
+        
+    await update.message.reply_text(text, parse_mode="HTML")
 
 async def stats_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id

@@ -25,5 +25,7 @@ CHANNEL_NAME = "@philobots"
 TUTORIAL_URL = "https://t.me/your_tutorial_link"
 BANNER_URL = "https://images.unsplash.com/photo-1594909122845-11baa439b7bf?q=80&w=2070&auto=format&fit=crop"
 
-# --- Force Subscribe ---
+# --- Group & Storage Settings ---
+ALLOWED_GROUP = -1001548130580
+STORAGE_CHANNEL = -1003661525300
 FSUB_CHANNEL = "@philobots"
