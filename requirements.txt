@@ -1,0 +1,6 @@
+python-telegram-bot
+motor
+pymongo
+httpx
+python-dotenv
+requests
