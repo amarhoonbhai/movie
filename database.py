@@ -1,94 +1,48 @@
-import logging
-
-logger = logging.getLogger(__name__)
-
+import motor.motor_asyncio
+from config import MONGO_URI, DB_NAME
 
 class Database:
-    def __init__(self):
-        # In-memory storage instead of MongoDB
-        self._users = {}           # user_id: user_data
-        self._search_history = {}  # query: count
-        self._premium_users = []   # list of user_ids
-        self._referrals = {}       # user_id: count
-        self._admins = set()       # set of user_ids
-        self._indexed_files = {}   # caption: message_id
-        self._movie_requests = []  # list of movie_names
+    def __init__(self, uri, database_name):
+        self._client = motor.motor_asyncio.AsyncIOMotorClient(uri)
+        self.db = self._client[database_name]
+        self.users = self.db.users
+        self.requests = self.db.requests
+        self.trending = self.db.trending
 
-    # --- User Management ---
-
-    async def add_user(self, user_id, username, full_name):
-        self._users[user_id] = {
-            "user_id": user_id,
-            "username": username,
-            "full_name": full_name,
-            "is_premium": False,
-            "is_banned": False,
-            "referred_by": None,
-        }
-
-    async def get_user(self, user_id):
-        return self._users.get(user_id)
-
-    async def ban_user(self, user_id):
-        user = self._users.get(int(user_id))
-        if user:
-            user["is_banned"] = True
+    async def add_user(self, user_id, first_name, last_name=None):
+        user = await self.users.find_one({"_id": user_id})
+        user_data = {"_id": user_id, "first_name": first_name, "last_name": last_name}
+        if not user:
+            return await self.users.insert_one(user_data)
+        else:
+            # Update names if they changed
+            await self.users.update_one({"_id": user_id}, {"$set": {"first_name": first_name, "last_name": last_name}})
+        return False
 
     async def get_all_users(self):
-        return list(self._users.values())
+        return await self.users.find({}).to_list(length=None)
 
-    async def get_stats(self):
-        return len(self._users), len(self._premium_users)
+    async def total_users_count(self):
+        return await self.users.count_documents({})
 
-    # --- Search History ---
-
-    async def add_search_query(self, query):
-        q = query.lower()
-        self._search_history[q] = self._search_history.get(q, 0) + 1
-
-    async def get_most_searched(self, limit=10):
-        sorted_history = sorted(
-            self._search_history.items(), key=lambda x: x[1], reverse=True
+    async def add_request(self, movie_name, user_id):
+        await self.requests.update_one(
+            {"name": movie_name.lower()},
+            {"$addToSet": {"requested_by": user_id}, "$setOnInsert": {"status": "pending"}},
+            upsert=True
         )
-        return [{"query": q, "count": c} for q, c in sorted_history[:limit]]
 
-    # --- Admin Management ---
+    async def get_requests_count(self):
+        return await self.requests.count_documents({})
 
-    async def is_admin(self, user_id):
-        from config import ADMIN_IDS, OWNER_IDS
+    async def add_trending(self, movie_name):
+        await self.trending.update_one(
+            {"name": movie_name.lower()},
+            {"$inc": {"count": 1}},
+            upsert=True
+        )
 
-        if user_id in OWNER_IDS or user_id in ADMIN_IDS:
-            return True
-        return user_id in self._admins
+    async def get_trending(self, limit=10):
+        return await self.trending.find({}).sort("count", -1).to_list(length=limit)
 
-    async def add_admin(self, user_id):
-        self._admins.add(int(user_id))
-
-    async def remove_admin(self, user_id):
-        self._admins.discard(int(user_id))
-
-    # --- Storage Index ---
-
-    async def index_file(self, caption, message_id):
-        if caption:
-            self._indexed_files[caption.lower()] = message_id
-            logger.info(f"Indexed: {caption[:40]}... -> msg#{message_id}")
-
-    async def search_files(self, query):
-        query = query.lower().strip()
-        results = []
-        for caption, msg_id in self._indexed_files.items():
-            if query in caption:
-                results.append({"caption": caption, "message_id": msg_id})
-        return results
-
-    # --- Movie Requests ---
-
-    async def add_movie_request(self, movie_name):
-        self._movie_requests.append(movie_name.lower().strip())
-
-    async def get_movie_requests(self):
-        return list(self._movie_requests)
-
-
-db = Database()
+db = Database(MONGO_URI, DB_NAME)

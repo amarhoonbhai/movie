@@ -1,6 +1,5 @@
-python-telegram-bot
+pyrogram
+tgcrypto
 motor
-pymongo
-httpx
+aiohttp
 python-dotenv
-requests
