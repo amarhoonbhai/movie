@@ -29,7 +29,9 @@ async def search_cmd(client: Client, message: Message):
             if m.document or m.video:
                 results.append(m)
     except Exception as e:
-        await msg.edit(f"⚠️ **An error occurred during search.**\n\nPlease try again later or contact support.")
+        import traceback
+        logging.error(f"Search traceback: {traceback.format_exc()}")
+        await msg.edit(f"⚠️ **An error occurred during search.**\n\nError: `{str(e)}`")
         return
     
     if not results:
