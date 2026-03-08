@@ -1,58 +1,94 @@
+"""
+utils/tmdb.py — TMDb API client (async, aiohttp).
+"""
+import logging
 import aiohttp
-from config import TMDB_API_KEY
+from config import TMDB_API_KEY, TMDB_IMAGE_BASE
 
-class TMDB:
-    def __init__(self, api_key):
+logger = logging.getLogger(__name__)
+
+BASE_URL = "https://api.themoviedb.org/3"
+
+
+class TMDb:
+    def __init__(self, api_key: str):
         self.api_key = api_key
-        self.base_url = "https://api.themoviedb.org/3"
 
-    async def get_details(self, query):
-        async with aiohttp.ClientSession() as session:
-            # Search for the movie/series
-            search_url = f"{self.base_url}/search/multi"
-            params = {
-                "api_key": self.api_key,
-                "query": query,
-                "language": "en-US",
-                "page": 1,
-                "include_adult": "false"
+    def _params(self, extra: dict = None) -> dict:
+        p = {"api_key": self.api_key, "language": "en-US"}
+        if extra:
+            p.update(extra)
+        return p
+
+    async def search(self, query: str, page: int = 1) -> list:
+        """Multi-search: returns list of raw results (movie + tv)."""
+        url = f"{BASE_URL}/search/multi"
+        params = self._params({"query": query, "page": page, "include_adult": "false"})
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                    data = await resp.json()
+                    return [r for r in data.get("results", []) if r.get("media_type") in ("movie", "tv")]
+        except Exception as e:
+            logger.error(f"TMDb search error: {e}")
+            return []
+
+    async def get_details(self, media_type: str, tmdb_id) -> dict:
+        """Fetch full details for a movie or TV show."""
+        url = f"{BASE_URL}/{media_type}/{tmdb_id}"
+        params = self._params()
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, params=params, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                    return await resp.json()
+        except Exception as e:
+            logger.error(f"TMDb get_details error: {e}")
+            return {}
+
+    async def get_movie_info(self, query: str) -> dict | None:
+        """
+        Single-call convenience method.
+        Returns a unified dict ready for caption formatting, or None.
+        """
+        results = await self.search(query)
+        if not results:
+            return None
+
+        best = results[0]
+        media_type = best.get("media_type", "movie")
+        tmdb_id    = best.get("id")
+        details    = await self.get_details(media_type, tmdb_id)
+        if not details:
+            return None
+
+        genres = ", ".join(g["name"] for g in details.get("genres", []))
+        rating = details.get("vote_average", 0)
+        poster = details.get("poster_path")
+
+        if media_type == "movie":
+            return {
+                "type":        "movie",
+                "title":       details.get("title") or best.get("title") or query,
+                "year":        (details.get("release_date") or "")[:4] or "N/A",
+                "genres":      genres or "N/A",
+                "rating":      f"{rating:.1f} ⭐" if rating else "N/A",
+                "plot":        details.get("overview") or "No description available.",
+                "poster_url":  f"{TMDB_IMAGE_BASE}{poster}" if poster else None,
+                "media_type":  "movie",
             }
-            async with session.get(search_url, params=params) as resp:
-                data = await resp.json()
-                if not data.get("results"):
-                    return None
-                
-                result = data["results"][0]
-                media_type = result.get("media_type", "movie")
-                tmdb_id = result["id"]
+        else:
+            return {
+                "type":        "series",
+                "title":       details.get("name") or best.get("name") or query,
+                "year":        (details.get("first_air_date") or "")[:4] or "N/A",
+                "status":      details.get("status") or "N/A",
+                "episodes":    details.get("number_of_episodes") or "N/A",
+                "genres":      genres or "N/A",
+                "rating":      f"{rating:.1f} ⭐" if rating else "N/A",
+                "plot":        details.get("overview") or "No description available.",
+                "poster_url":  f"{TMDB_IMAGE_BASE}{poster}" if poster else None,
+                "media_type":  "tv",
+            }
 
-                # Fetch detailed info
-                details_url = f"{self.base_url}/{media_type}/{tmdb_id}"
-                params = {"api_key": self.api_key, "language": "en-US"}
-                async with session.get(details_url, params=params) as detail_resp:
-                    details = await detail_resp.json()
-                    
-                    if media_type == "movie":
-                        return {
-                            "type": "movie",
-                            "title": details.get("title"),
-                            "year": details.get("release_date", "")[:4],
-                            "genres": ", ".join([g["name"] for g in details.get("genres", [])]),
-                            "rating": details.get("vote_average"),
-                            "plot": details.get("overview"),
-                            "audio": "English | Hindi" # Placeholder, usually not in TMDB
-                        }
-                    else: # TV Series
-                        return {
-                            "type": "series",
-                            "title": details.get("name"),
-                            "year": details.get("first_air_date", "")[:4],
-                            "status": details.get("status"),
-                            "episodes": details.get("number_of_episodes"),
-                            "rating": details.get("vote_average"),
-                            "genres": ", ".join([g["name"] for g in details.get("genres", [])]),
-                            "plot": details.get("overview"),
-                            "audio": "English | Hindi" # Placeholder
-                        }
 
-tmdb = TMDB(TMDB_API_KEY)
+tmdb = TMDb(TMDB_API_KEY)

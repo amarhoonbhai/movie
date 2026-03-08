@@ -1,66 +1,202 @@
-from pyrogram import Client, filters
-from pyrogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
-from utils.force_join import force_join_check, is_subscribed
-from database import db
-from config import BANNER_URL
+"""
+plugins/start.py — /start command, force-join gate, welcome message.
+"""
+import logging
+from datetime import datetime, timezone
 
-@Client.on_message(filters.command("start"))
+from pyrogram import Client, filters
+from pyrogram.types import (
+    Message,
+    CallbackQuery,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+)
+
+from config import BANNER_URL, FSUB_CHANNEL, FSUB_LINK
+from database import db
+from utils.middlewares import force_join_check, is_subscribed
+
+logger = logging.getLogger(__name__)
+
+
+# ── /start ─────────────────────────────────────────────────────────────────────
+
+@Client.on_message(filters.command("start") & filters.private)
 async def start_cmd(client: Client, message: Message):
-    import logging
-    logging.info(f"Received /start from {message.from_user.id if message.from_user else 'Unknown'}")
+    logger.info(f"[/start] user={message.from_user.id}")
+
+    # ── Force-join gate ────────────────────────────────────────────────────────
     if not await force_join_check(client, message):
         return
-    
-    first_name = message.from_user.first_name
-    last_name = message.from_user.last_name or ""
-    full_name = f"{first_name} {last_name}".strip()
-    
-    await db.add_user(message.from_user.id, first_name, last_name)
-    
-    text = f"""🌟 **Welcome to PhiloBots Movie Search!** 🌟
 
-Hello **{full_name}**, I'm your high-performance movie assistant. 🚀
+    user = message.from_user
 
-───────────────────────
-🔹 **Search Movies & Series** instantly.
-🔹 **Professional Metadata** & High Quality.
-🔹 **Fast Forwarding** to our community.
-───────────────────────
+    # ── Store user in MongoDB ─────────────────────────────────────────────────
+    await db.add_user(
+        user_id    = user.id,
+        first_name = user.first_name,
+        username   = user.username,
+    )
 
-💡 **How to use:**
-Simply type `/search movie_name` or click the button below!"""
-    
-    buttons = InlineKeyboardMarkup([
+    # ── Welcome keyboard ──────────────────────────────────────────────────────
+    keyboard = InlineKeyboardMarkup([
         [
-            InlineKeyboardButton("🔍 Search Movie", switch_inline_query_current_chat="/search "),
-            InlineKeyboardButton("🚀 Trending", callback_data="show_trending")
+            InlineKeyboardButton("🔍 Search Movie", switch_inline_query_current_chat=""),
+            InlineKeyboardButton("📥 Requests",     callback_data="show_requests"),
         ],
         [
-            InlineKeyboardButton("💎 Premium Features", callback_data="show_premium"),
-            InlineKeyboardButton("🛡️ Support", url="https://t.me/PhiloBots")
-        ]
+            InlineKeyboardButton("📊 Stats",   callback_data="show_stats"),
+            InlineKeyboardButton("🔥 Trending", callback_data="show_trending"),
+        ],
+        [
+            InlineKeyboardButton("📢 Our Channel", url=f"https://t.me/{FSUB_CHANNEL.lstrip('@')}"),
+        ],
     ])
-    
-    if BANNER_URL:
-        await message.reply_photo(BANNER_URL, caption=text, reply_markup=buttons)
+
+    welcome = (
+        f"🎬 <b>Welcome to Movie Finder Bot</b>\n\n"
+        f"Hello <b>{user.first_name}</b>! 👋\n\n"
+        "Search and download movies directly in the group.\n\n"
+        "<b>Commands:</b>\n"
+        "• /search <i>movie name</i> → Search movies\n"
+        "• /requests → View requested movies\n"
+        "• /stats → Bot statistics\n\n"
+        "━━━━━━━━━━━━━━\n"
+        "📢 Powered by: @PhiloBots\n"
+        "━━━━━━━━━━━━━━"
+    )
+
+    try:
+        await message.reply_photo(
+            photo      = BANNER_URL,
+            caption    = welcome,
+            reply_markup = keyboard,
+            parse_mode = "html",
+        )
+    except Exception:
+        await message.reply_text(
+            text         = welcome,
+            reply_markup = keyboard,
+            parse_mode   = "html",
+        )
+
+
+# ── ✅ I Joined callback ────────────────────────────────────────────────────────
+
+@Client.on_callback_query(filters.regex("^check_join$"))
+async def check_join_callback(client: Client, callback: CallbackQuery):
+    user_id = callback.from_user.id
+
+    if await is_subscribed(client, user_id):
+        await callback.answer("✅ Verified! Welcome.", show_alert=True)
+        try:
+            await callback.message.delete()
+        except Exception:
+            pass
+
+        # Re-trigger start flow
+        user = callback.from_user
+        await db.add_user(user.id, user.first_name, user.username)
+
+        keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("🔍 Search Movie", switch_inline_query_current_chat=""),
+                InlineKeyboardButton("📥 Requests",     callback_data="show_requests"),
+            ],
+            [
+                InlineKeyboardButton("📊 Stats",   callback_data="show_stats"),
+                InlineKeyboardButton("🔥 Trending", callback_data="show_trending"),
+            ],
+            [InlineKeyboardButton("📢 Our Channel", url=f"https://t.me/{FSUB_CHANNEL.lstrip('@')}")],
+        ])
+
+        welcome = (
+            f"🎬 <b>Welcome to Movie Finder Bot</b>\n\n"
+            f"Hello <b>{user.first_name}</b>! 👋\n\n"
+            "Search and download movies directly in the group.\n\n"
+            "<b>Commands:</b>\n"
+            "• /search <i>movie name</i> → Search movies\n"
+            "• /requests → View requested movies\n"
+            "• /stats → Bot statistics\n\n"
+            "━━━━━━━━━━━━━━\n"
+            "📢 Powered by: @PhiloBots\n"
+            "━━━━━━━━━━━━━━"
+        )
+        try:
+            await client.send_photo(
+                chat_id      = callback.message.chat.id,
+                photo        = BANNER_URL,
+                caption      = welcome,
+                reply_markup = keyboard,
+                parse_mode   = "html",
+            )
+        except Exception:
+            await client.send_message(
+                chat_id      = callback.message.chat.id,
+                text         = welcome,
+                reply_markup = keyboard,
+                parse_mode   = "html",
+            )
     else:
-        await message.reply_text(text, reply_markup=buttons)
+        await callback.answer(
+            "❌ You haven't joined yet! Please join both channels first.",
+            show_alert=True,
+        )
 
-@Client.on_callback_query(filters.regex("check_join"))
-async def check_join_callback(client: Client, callback_query: CallbackQuery):
-    if await is_subscribed(client, callback_query.from_user.id):
-        await callback_query.message.delete()
-        await start_cmd(client, callback_query.message)
-    else:
-        await callback_query.answer("❌ You still haven't joined!", show_alert=True)
 
-@Client.on_callback_query(filters.regex("show_trending"))
-async def trending_callback(client: Client, callback_query: CallbackQuery):
-    # Use callback_query.answer() before doing long ops or changing message
-    from plugins.search import trending_cmd
-    await trending_cmd(client, callback_query.message)
+# ── show_stats callback ───────────────────────────────────────────────────────
 
-@Client.on_callback_query(filters.regex("show_premium"))
-async def premium_callback(client: Client, callback_query: CallbackQuery):
-    from plugins.premium import premium_info
-    await premium_info(client, callback_query.message)
+@Client.on_callback_query(filters.regex("^show_stats$"))
+async def show_stats_callback(client: Client, callback: CallbackQuery):
+    await callback.answer()
+    users_count   = await db.total_users_count()
+    files_count   = await db.files_count()
+    req_count     = await db.get_requests_count()
+    trending_list = await db.get_trending(5)
+
+    text = (
+        "📊 <b>Bot Statistics</b>\n\n"
+        f"👤 <b>Total Users:</b> <code>{users_count}</code>\n"
+        f"🎬 <b>Movies Indexed:</b> <code>{files_count}</code>\n"
+        f"📥 <b>Total Requests:</b> <code>{req_count}</code>\n\n"
+        "🔥 <b>Trending Searches:</b>\n"
+    )
+    for i, t in enumerate(trending_list, 1):
+        text += f"  {i}. {t['query'].title()} ({t['count']})\n"
+
+    await callback.message.reply_text(text, parse_mode="html")
+
+
+# ── show_trending callback ─────────────────────────────────────────────────────
+
+@Client.on_callback_query(filters.regex("^show_trending$"))
+async def show_trending_callback(client: Client, callback: CallbackQuery):
+    await callback.answer()
+    trending_list = await db.get_trending(10)
+    if not trending_list:
+        await callback.message.reply_text("No trending data yet. Start searching!")
+        return
+
+    text = "🔥 <b>Trending Searches</b>\n\n"
+    for i, t in enumerate(trending_list, 1):
+        text += f"{i}. {t['query'].title()} <code>({t['count']})</code>\n"
+
+    await callback.message.reply_text(text, parse_mode="html")
+
+
+# ── show_requests callback ─────────────────────────────────────────────────────
+
+@Client.on_callback_query(filters.regex("^show_requests$"))
+async def show_requests_callback(client: Client, callback: CallbackQuery):
+    await callback.answer()
+    reqs = await db.get_all_requests(15)
+    if not reqs:
+        await callback.message.reply_text("📭 No pending movie requests.")
+        return
+
+    text = "📥 <b>Pending Movie Requests</b>\n\n"
+    for i, req in enumerate(reqs, 1):
+        count = len(req.get("requested_by", []))
+        text += f"{i}. <b>{req['movie'].title()}</b> — {count} user{'s' if count != 1 else ''}\n"
+
+    await callback.message.reply_text(text, parse_mode="html")

@@ -1,1 +1,1 @@
-# Movie Bot - Utils Package
+"""utils/__init__.py"""

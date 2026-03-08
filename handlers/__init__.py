@@ -1,1 +1,0 @@
-# Movie Bot - Handlers Package
