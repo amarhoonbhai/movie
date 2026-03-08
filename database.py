@@ -15,9 +15,12 @@ class Database:
         if not user:
             return await self.users.insert_one(user_data)
         else:
-            # Update names if they changed
             await self.users.update_one({"_id": user_id}, {"$set": {"first_name": first_name, "last_name": last_name}})
         return False
+    
+    async def add_search_query(self, query):
+        """Alpha compatibility alias for trending."""
+        return await self.add_trending(query)
 
     async def get_all_users(self):
         return await self.users.find({}).to_list(length=None)
