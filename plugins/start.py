@@ -4,8 +4,10 @@ from utils.force_join import force_join_check, is_subscribed
 from database import db
 from config import BANNER_URL
 
-@Client.on_message(filters.command("start") & filters.private)
+@Client.on_message(filters.command("start"))
 async def start_cmd(client: Client, message: Message):
+    import logging
+    logging.info(f"Received /start from {message.from_user.id if message.from_user else 'Unknown'}")
     if not await force_join_check(client, message):
         return
     

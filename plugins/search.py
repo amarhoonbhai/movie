@@ -6,8 +6,10 @@ from utils.formatter import format_movie_caption, format_series_caption
 from database import db
 from config import STORAGE_CHANNEL, ALLOWED_GROUP
 
-@Client.on_message(filters.command("search") & filters.private)
+@Client.on_message(filters.command("search"))
 async def search_cmd(client: Client, message: Message):
+    import logging
+    logging.info(f"Received /search from {message.from_user.id if message.from_user else 'Unknown'}")
     if not await force_join_check(client, message):
         return
     
