@@ -1,10 +1,14 @@
 import asyncio
+try:
+    asyncio.get_event_loop()
+except RuntimeError:
+    asyncio.set_event_loop(asyncio.new_event_loop())
+
 import logging
 from pyrogram import compose
 from bots.finder.bot import finder_app
 from bots.store.bot import store_app
 from core.database import db
-from search.meili import meili
 
 logging.basicConfig(
     level=logging.INFO,
@@ -17,15 +21,15 @@ async def main():
     logger.info("Starting up both Telegram Bots...")
     # Ensure dependencies are connected and initialized
     await db.ensure_indexes()
-    await meili.ensure_index()
 
     print("\n" + "="*50)
     print("🚀 Dual-Bot Scalable Movie System Started!")
     print(f"1. 🎬 AutoMovieFinderBot is running")
     print(f"2. 🗄 PhiloStoreBot is running")
-    print("Ensure Redis & Arq Worker are also running (arq worker.arq_worker.WorkerSettings)!")
+    print("Background tasks are running natively via Pyrogram asyncio.")
     print("="*50 + "\n")
 
+    # Run Pyrogram apps simultaneously
     # Run Pyrogram apps simultaneously
     await compose([finder_app, store_app])
 

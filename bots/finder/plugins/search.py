@@ -8,13 +8,11 @@ from pyrogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineK
 
 from core.config import STORAGE_CHANNEL, ALLOWED_GROUP, AUTO_DELETE_TIMER
 from core.database import db
-from search.meili import meili
+
 from utils.force_join import force_join_check
 from utils.helpers import normalize_query, extract_quality, extract_audio, human_size, schedule_delete
 from utils.tmdb import tmdb
 from utils.formatter import format_movie_caption, format_series_caption
-
-from worker.arq_worker import get_redis_pool
 
 logger = logging.getLogger(__name__)
 
@@ -46,23 +44,8 @@ async def search_cmd(client: Client, message: Message):
 
     wait_msg = await message.reply_text(f"🔍 Searching for <b>{query}</b>…", parse_mode="html")
 
-    # 1. Search Meilisearch First
-    meili_hits = await meili.search_movies(normalized, limit=10)
-    
-    results = []
-    if meili_hits:
-        # 2. Map Meilisearch IDs back to MongoDB documents
-        msg_ids = [int(hit.get("id").replace("msg_", "")) for hit in meili_hits if hit.get("id")]
-        
-        # We need to fetch from DB and keep order
-        cursor = db.files.find({"message_id": {"$in": msg_ids}})
-        db_files = await cursor.to_list(length=10)
-        
-        # Map them by message_id
-        db_map = {f["message_id"]: f for f in db_files}
-        
-        # Respect Meilisearch's order (most relevant first)
-        results = [db_map[mid] for mid in msg_ids if mid in db_map]
+    # 1. Search MongoDB directly
+    results = await db.search_files(normalized)
     
     if not results:
         await db.add_request(message.from_user.id, query)
@@ -169,11 +152,5 @@ async def _send_file(client: Client, message: Message, file_doc: dict, tmdb_info
         parse_mode="html",
     )
 
-    # Queue auto-delete task in Redis via Arq
-    try:
-        redis = await get_redis_pool()
-        await redis.enqueue_job("schedule_auto_delete", chat_id=chat_id, message_id=[sent_file.id, notice_msg.id], _defer_by=AUTO_DELETE_TIMER)
-    except Exception as e:
-        logger.error(f"Failed to queue schedule_auto_delete via Arq: {e}")
-        # Fallback to local asyncio task
-        asyncio.create_task(schedule_delete(client, chat_id, AUTO_DELETE_TIMER, sent_file.id, notice_msg.id))
+    # Native asyncio auto-delete task
+    asyncio.create_task(schedule_delete(client, chat_id, AUTO_DELETE_TIMER, sent_file.id, notice_msg.id))

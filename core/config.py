@@ -18,13 +18,6 @@ TMDB_IMAGE_BASE    = "https://image.tmdb.org/t/p/w500"
 MONGO_URI  = os.getenv("MONGO_URI", "mongodb+srv://admin:pass@cluster.mongodb.net/movie_bot?retryWrites=true&w=majority")
 DB_NAME    = os.getenv("DB_NAME", "movie_bot")
 
-# ── Redis & Worker ─────────────────────────────────────────────────────────────
-REDIS_URL  = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-
-# ── Meilisearch ────────────────────────────────────────────────────────────────
-MEILI_URL  = os.getenv("MEILI_URL", "http://localhost:7700")
-MEILI_MASTER_KEY = os.getenv("MEILI_MASTER_KEY", "your_master_key_here")
-
 # ── Ownership & Access ─────────────────────────────────────────────────────────
 OWNER_ID      = int(os.getenv("OWNER_ID", "8395808382"))
 ADMIN_IDS     = [int(i.strip()) for i in os.getenv("ADMIN_IDS", "8395808382").split(",") if i.strip()]

@@ -4,7 +4,8 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 
 from core.config import STORAGE_CHANNEL
-from worker.arq_worker import get_redis_pool
+from worker.tasks import process_new_movie_upload
+from bots.finder.bot import finder_app
 
 logger = logging.getLogger(__name__)
 
@@ -47,9 +48,10 @@ async def store_bot_indexer(client: Client, message: Message):
         title = file_name.replace(".", " ").replace("_", " ")
     
     try:
-        redis = await get_redis_pool()
-        await redis.enqueue_job(
-            "process_new_movie_upload",
+        # Run natively in the background (fire and forget using Pyrogram)
+        # We pass the finder_app so it can send messages to users
+        await process_new_movie_upload(
+            app=finder_app,
             file_id=file_id,
             file_name=file_name,
             file_size=file_size,
@@ -59,6 +61,6 @@ async def store_bot_indexer(client: Client, message: Message):
             year=year,
             genre=genre
         )
-        logger.info(f"Queued indexing job for {file_name}")
+        logger.info(f"Queued native indexing job for {file_name}")
     except Exception as e:
-        logger.error(f"Failed to enqueue indexing job: {e}")
+        logger.error(f"Failed to enqueue indexing job natively: {e}")

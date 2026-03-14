@@ -2,11 +2,12 @@
 Admin commands: /stats, /broadcast, /requests.
 """
 import logging
+import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import Message
 from core.config import OWNER_ID, ADMIN_IDS
 from core.database import db
-from worker.arq_worker import get_redis_pool
+from worker.tasks import broadcast_message
 
 logger = logging.getLogger(__name__)
 
@@ -67,13 +68,12 @@ async def broadcast_cmd(client: Client, message: Message):
     )
 
     try:
-        redis = await get_redis_pool()
-        # Enqueue broadcast task to run in background worker
-        await redis.enqueue_job("broadcast_message", message_id=message.reply_to_message.id, from_chat_id=message.chat.id)
+        # Enqueue broadcast task natively
+        asyncio.create_task(broadcast_message(client, message.reply_to_message.id, message.chat.id))
         await status_msg.edit_text(
-            f"✅ <b>Broadcast Queued successfully to the worker!</b>",
+            f"✅ <b>Broadcast running in the background!</b>",
             parse_mode="html",
         )
     except Exception as e:
-        logger.error(f"Failed to enqueue broadcast task: {e}")
-        await status_msg.edit_text("❌ Failed to queue broadcast task.")
+        logger.error(f"Failed to run broadcast natively: {e}")
+        await status_msg.edit_text("❌ Failed to start broadcast task.")
