@@ -1,4 +1,4 @@
-from config import CHANNEL_NAME
+from core.config import CHANNEL_NAME
 
 def get_post_text(details, media_type="movie", layout="portrait"):
     """

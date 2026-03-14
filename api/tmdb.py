@@ -1,6 +1,6 @@
 import logging
 import httpx
-from config import TMDB_API_KEY
+from core.config import TMDB_API_KEY
 
 logger = logging.getLogger(__name__)
 

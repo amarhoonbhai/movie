@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timezone
 import motor.motor_asyncio
 from pymongo import TEXT, ASCENDING, DESCENDING
-from config import MONGO_URI, DB_NAME
+from core.config import MONGO_URI, DB_NAME
 
 logger = logging.getLogger(__name__)
 

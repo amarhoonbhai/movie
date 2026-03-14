@@ -5,3 +5,6 @@ pymongo
 aiohttp
 python-dotenv
 dnspython
+arq
+redis
+meilisearch-python-async

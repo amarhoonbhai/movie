@@ -3,7 +3,7 @@ utils/tmdb.py — TMDb API client (async, aiohttp).
 """
 import logging
 import aiohttp
-from config import TMDB_API_KEY, TMDB_IMAGE_BASE
+from core.config import TMDB_API_KEY, TMDB_IMAGE_BASE
 
 logger = logging.getLogger(__name__)
 

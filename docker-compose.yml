@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:alpine
+    container_name: movie_redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.6
+    container_name: movie_meilisearch
+    ports:
+      - "7700:7700"
+    environment:
+      - MEILI_MASTER_KEY=your_master_key_here
+      - MEILI_ENV=development
+    restart: unless-stopped
+    volumes:
+      - meili_data:/meili_data
+
+volumes:
+  redis_data:
+  meili_data:

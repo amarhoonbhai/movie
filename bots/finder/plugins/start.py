@@ -1,44 +1,24 @@
 """
-plugins/start.py — /start command, force-join gate, welcome message.
+/start command, stats, trending, and requests.
 """
 import logging
-from datetime import datetime, timezone
-
 from pyrogram import Client, filters
-from pyrogram.types import (
-    Message,
-    CallbackQuery,
-    InlineKeyboardMarkup,
-    InlineKeyboardButton,
-)
-
-from config import BANNER_URL, FSUB_CHANNEL, FSUB_LINK
-from database import db
-from utils.middlewares import force_join_check, is_subscribed
+from pyrogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from core.config import BANNER_URL, FSUB_CHANNEL
+from core.database import db
+from utils.force_join import force_join_check, is_subscribed
 
 logger = logging.getLogger(__name__)
 
-
 # ── /start ─────────────────────────────────────────────────────────────────────
-
 @Client.on_message(filters.command("start") & filters.private)
 async def start_cmd(client: Client, message: Message):
-    logger.info(f"[/start] user={message.from_user.id}")
-
-    # ── Force-join gate ────────────────────────────────────────────────────────
     if not await force_join_check(client, message):
         return
 
     user = message.from_user
+    await db.add_user(user_id=user.id, first_name=user.first_name, username=user.username)
 
-    # ── Store user in MongoDB ─────────────────────────────────────────────────
-    await db.add_user(
-        user_id    = user.id,
-        first_name = user.first_name,
-        username   = user.username,
-    )
-
-    # ── Welcome keyboard ──────────────────────────────────────────────────────
     keyboard = InlineKeyboardMarkup([
         [
             InlineKeyboardButton("🔍 Search Movie", switch_inline_query_current_chat=""),
@@ -67,34 +47,21 @@ async def start_cmd(client: Client, message: Message):
     )
 
     try:
-        await message.reply_photo(
-            photo      = BANNER_URL,
-            caption    = welcome,
-            reply_markup = keyboard,
-            parse_mode = "html",
-        )
+        await message.reply_photo(photo=BANNER_URL, caption=welcome, reply_markup=keyboard, parse_mode="html")
     except Exception:
-        await message.reply_text(
-            text         = welcome,
-            reply_markup = keyboard,
-            parse_mode   = "html",
-        )
-
+        await message.reply_text(text=welcome, reply_markup=keyboard, parse_mode="html")
 
 # ── ✅ I Joined callback ────────────────────────────────────────────────────────
-
 @Client.on_callback_query(filters.regex("^check_join$"))
 async def check_join_callback(client: Client, callback: CallbackQuery):
     user_id = callback.from_user.id
-
     if await is_subscribed(client, user_id):
         await callback.answer("✅ Verified! Welcome.", show_alert=True)
         try:
             await callback.message.delete()
-        except Exception:
+        except:
             pass
 
-        # Re-trigger start flow
         user = callback.from_user
         await db.add_user(user.id, user.first_name, user.username)
 
@@ -123,29 +90,13 @@ async def check_join_callback(client: Client, callback: CallbackQuery):
             "━━━━━━━━━━━━━━"
         )
         try:
-            await client.send_photo(
-                chat_id      = callback.message.chat.id,
-                photo        = BANNER_URL,
-                caption      = welcome,
-                reply_markup = keyboard,
-                parse_mode   = "html",
-            )
+            await client.send_photo(chat_id=callback.message.chat.id, photo=BANNER_URL, caption=welcome, reply_markup=keyboard, parse_mode="html")
         except Exception:
-            await client.send_message(
-                chat_id      = callback.message.chat.id,
-                text         = welcome,
-                reply_markup = keyboard,
-                parse_mode   = "html",
-            )
+            await client.send_message(chat_id=callback.message.chat.id, text=welcome, reply_markup=keyboard, parse_mode="html")
     else:
-        await callback.answer(
-            "❌ You haven't joined yet! Please join both channels first.",
-            show_alert=True,
-        )
-
+        await callback.answer("❌ You haven't joined yet! Please join both channels first.", show_alert=True)
 
 # ── show_stats callback ───────────────────────────────────────────────────────
-
 @Client.on_callback_query(filters.regex("^show_stats$"))
 async def show_stats_callback(client: Client, callback: CallbackQuery):
     await callback.answer()
@@ -166,9 +117,7 @@ async def show_stats_callback(client: Client, callback: CallbackQuery):
 
     await callback.message.reply_text(text, parse_mode="html")
 
-
 # ── show_trending callback ─────────────────────────────────────────────────────
-
 @Client.on_callback_query(filters.regex("^show_trending$"))
 async def show_trending_callback(client: Client, callback: CallbackQuery):
     await callback.answer()
@@ -183,9 +132,7 @@ async def show_trending_callback(client: Client, callback: CallbackQuery):
 
     await callback.message.reply_text(text, parse_mode="html")
 
-
 # ── show_requests callback ─────────────────────────────────────────────────────
-
 @Client.on_callback_query(filters.regex("^show_requests$"))
 async def show_requests_callback(client: Client, callback: CallbackQuery):
     await callback.answer()

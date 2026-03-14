@@ -1,7 +1,7 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message
 from pyrogram.errors import UserNotParticipant
-from config import FSUB_CHANNEL, FSUB_LINK
+from core.config import FSUB_CHANNEL, FSUB_LINK
 
 async def is_subscribed(client, user_id):
     try:

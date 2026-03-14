@@ -8,6 +8,8 @@ BOT_TOKEN   = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
 API_ID      = int(os.getenv("API_ID", "25662706"))
 API_HASH    = os.getenv("API_HASH", "8828b6a3821034c44917544073801f65")
 
+STORE_BOT_TOKEN = os.getenv("STORE_BOT_TOKEN", "YOUR_STORE_BOT_TOKEN_HERE")
+
 # ── TMDb ───────────────────────────────────────────────────────────────────────
 TMDB_API_KEY       = os.getenv("TMDB_API_KEY", "abc0e45d572a0a9065b3498a9c8ebc24")
 TMDB_IMAGE_BASE    = "https://image.tmdb.org/t/p/w500"
@@ -15,6 +17,13 @@ TMDB_IMAGE_BASE    = "https://image.tmdb.org/t/p/w500"
 # ── MongoDB ────────────────────────────────────────────────────────────────────
 MONGO_URI  = os.getenv("MONGO_URI", "mongodb+srv://admin:pass@cluster.mongodb.net/movie_bot?retryWrites=true&w=majority")
 DB_NAME    = os.getenv("DB_NAME", "movie_bot")
+
+# ── Redis & Worker ─────────────────────────────────────────────────────────────
+REDIS_URL  = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+# ── Meilisearch ────────────────────────────────────────────────────────────────
+MEILI_URL  = os.getenv("MEILI_URL", "http://localhost:7700")
+MEILI_MASTER_KEY = os.getenv("MEILI_MASTER_KEY", "your_master_key_here")
 
 # ── Ownership & Access ─────────────────────────────────────────────────────────
 OWNER_ID      = int(os.getenv("OWNER_ID", "8395808382"))

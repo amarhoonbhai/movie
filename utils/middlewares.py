@@ -5,7 +5,7 @@ import logging
 from pyrogram import Client
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import UserNotParticipant, ChatAdminRequired, ChannelPrivate
-from config import (
+from core.config import (
     FSUB_CHANNEL, FSUB_CHANNEL_ID, FSUB_LINK,
     FSUB_GROUP_ID, ALLOWED_GROUP, OWNER_ID, ADMIN_IDS,
 )
