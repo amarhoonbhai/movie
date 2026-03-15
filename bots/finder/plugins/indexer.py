@@ -5,7 +5,6 @@ from pyrogram.types import Message
 
 from core.config import STORAGE_CHANNEL
 from worker.tasks import process_new_movie_upload
-from bots.finder.bot import finder_app
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +27,7 @@ def parse_caption(text: str):
     return t, y, g
 
 @Client.on_message(filters.channel & filters.chat(STORAGE_CHANNEL) & (filters.document | filters.video))
-async def store_bot_indexer(client: Client, message: Message):
+async def bot_indexer(client: Client, message: Message):
     """
     When a document or video is sent to the STORAGE_CHANNEL, queue it for processing.
     """
@@ -49,9 +48,8 @@ async def store_bot_indexer(client: Client, message: Message):
     
     try:
         # Run natively in the background (fire and forget using Pyrogram)
-        # We pass the finder_app so it can send messages to users
         await process_new_movie_upload(
-            app=finder_app,
+            app=client,
             file_id=file_id,
             file_name=file_name,
             file_size=file_size,

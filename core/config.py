@@ -3,36 +3,43 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ── Bot Credentials ────────────────────────────────────────────────────────────
-BOT_TOKEN   = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
-API_ID      = int(os.getenv("API_ID", "25662706"))
-API_HASH    = os.getenv("API_HASH", "8828b6a3821034c44917544073801f65")
+# Helper to require env vars
+def get_env_or_raise(key: str) -> str:
+    val = os.getenv(key)
+    if not val:
+        raise ValueError(f"Missing required environment variable: {key}")
+    return val
 
-STORE_BOT_TOKEN = os.getenv("STORE_BOT_TOKEN", "YOUR_STORE_BOT_TOKEN_HERE")
+# ── Bot Credentials ────────────────────────────────────────────────────────────
+BOT_TOKEN   = get_env_or_raise("BOT_TOKEN")
+API_ID      = int(get_env_or_raise("API_ID"))
+API_HASH    = get_env_or_raise("API_HASH")
 
 # ── TMDb ───────────────────────────────────────────────────────────────────────
-TMDB_API_KEY       = os.getenv("TMDB_API_KEY", "abc0e45d572a0a9065b3498a9c8ebc24")
+# Optional, use default or raise if you strictly require metadata
+TMDB_API_KEY       = get_env_or_raise("TMDB_API_KEY")
 TMDB_IMAGE_BASE    = "https://image.tmdb.org/t/p/w500"
 
 # ── MongoDB ────────────────────────────────────────────────────────────────────
-MONGO_URI  = os.getenv("MONGO_URI", "mongodb+srv://admin:pass@cluster.mongodb.net/movie_bot?retryWrites=true&w=majority")
+MONGO_URI  = get_env_or_raise("MONGO_URI")
 DB_NAME    = os.getenv("DB_NAME", "movie_bot")
 
 # ── Ownership & Access ─────────────────────────────────────────────────────────
-OWNER_ID      = int(os.getenv("OWNER_ID", "8395808382"))
-ADMIN_IDS     = [int(i.strip()) for i in os.getenv("ADMIN_IDS", "8395808382").split(",") if i.strip()]
-ALLOWED_GROUP = int(os.getenv("ALLOWED_GROUP", "-1001548130580"))
+OWNER_ID      = int(get_env_or_raise("OWNER_ID"))
+ADMIN_IDS     = [int(i.strip()) for i in os.getenv("ADMIN_IDS", str(OWNER_ID)).split(",") if i.strip()]
+ALLOWED_GROUP = int(get_env_or_raise("ALLOWED_GROUP"))
+
+# ── Developer & Support ────────────────────────────────────────────────────────
+DEV_USERNAME    = os.getenv("DEV_USERNAME", "@kurup")
+SUPPORT_GROUP   = os.getenv("SUPPORT_GROUP", "")
+SUPPORT_CHANNEL = os.getenv("SUPPORT_CHANNEL", "")
 
 # ── Storage & Force-Subscribe ─────────────────────────────────────────────────
-STORAGE_CHANNEL = int(os.getenv("STORAGE_CHANNEL", "-1003661525300"))
+STORAGE_CHANNEL = int(get_env_or_raise("STORAGE_CHANNEL"))
 
 # Force-join channel 1 (public) — numeric ID or @username
-FSUB_CHANNEL    = os.getenv("FSUB_CHANNEL", "@PhiloBots")
-FSUB_CHANNEL_ID = int(os.getenv("FSUB_CHANNEL_ID", "-1002036931987"))  # numeric id for get_chat_member
-
-# Force-join channel 2 (private invite link group)
-FSUB_LINK       = os.getenv("FSUB_LINK", "https://t.me/+AxJ9AFAeGsM3ZDE1")
-FSUB_GROUP_ID   = int(os.getenv("FSUB_GROUP_ID", "-1001548130580"))    # group behind invite link
+FSUB_CHANNEL    = get_env_or_raise("FSUB_CHANNEL")
+FSUB_LINK       = get_env_or_raise("FSUB_LINK")
 
 # ── UI ─────────────────────────────────────────────────────────────────────────
 BANNER_URL = os.getenv(

@@ -1,6 +1,7 @@
 """
 utils/formatter.py — Caption formatting for movie/series files.
 """
+from core.config import DEV_USERNAME, SUPPORT_CHANNEL
 
 def format_movie_caption(details: dict, quality: str = "HD", audio: str = "Hindi | English") -> str:
     title   = details.get("title", "Unknown")
@@ -21,7 +22,8 @@ def format_movie_caption(details: dict, quality: str = "HD", audio: str = "Hindi
 
     caption += (
         "\n━━━━━━━━━━━━━━\n"
-        "📢 Powered by: @PhiloBots\n"
+        f"📢 Powered by: <b>{DEV_USERNAME}</b>\n"
+        f"💬 Support: {SUPPORT_CHANNEL}\n"
         "━━━━━━━━━━━━━━"
     )
     return caption
@@ -50,7 +52,8 @@ def format_series_caption(details: dict, quality: str = "HD", audio: str = "Hind
 
     caption += (
         "\n━━━━━━━━━━━━━━\n"
-        "📢 Powered by: @PhiloBots\n"
+        f"📢 Powered by: <b>{DEV_USERNAME}</b>\n"
+        f"💬 Support: {SUPPORT_CHANNEL}\n"
         "━━━━━━━━━━━━━━"
     )
     return caption

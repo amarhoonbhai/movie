@@ -19,6 +19,9 @@ logger = logging.getLogger(__name__)
 # Key: cache_key string, Value: list of file dicts from MongoDB
 _result_cache: dict[str, list] = {}
 
+# Strong references for fire-and-forget tasks
+_bg_tasks = set()
+
 def _is_allowed(message: Message) -> bool:
     return message.chat.id == ALLOWED_GROUP or message.chat.type.value == "private"
 
@@ -152,5 +155,7 @@ async def _send_file(client: Client, message: Message, file_doc: dict, tmdb_info
         parse_mode="html",
     )
 
-    # Native asyncio auto-delete task
-    asyncio.create_task(schedule_delete(client, chat_id, AUTO_DELETE_TIMER, sent_file.id, notice_msg.id))
+    # Native asyncio auto-delete task (keep strong reference to avoid GC)
+    task = asyncio.create_task(schedule_delete(client, chat_id, AUTO_DELETE_TIMER, sent_file.id, notice_msg.id))
+    _bg_tasks.add(task)
+    task.add_done_callback(_bg_tasks.discard)
